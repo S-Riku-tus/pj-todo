@@ -1,19 +1,40 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
-class TodoBase(BaseModel):
-    title: str
-    description: str | None = None
 
+# Shared properties
+class TodoBase(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    completed: Optional[bool] = False
+
+
+# Properties to receive on item creation
 class TodoCreate(TodoBase):
+    title: str
+
+
+# Properties to receive on item update
+class TodoUpdate(TodoBase):
     pass
 
-class TodoUpdate(TodoBase):
-    completed: bool | None = None
 
-class Todo(TodoBase):
+# Properties shared by models stored in DB
+class TodoInDBBase(TodoBase):
     id: int
-    completed: bool
+    title: str
     owner_id: int
 
     class Config:
         orm_mode = True
+
+
+# Properties to return to client
+class Todo(TodoInDBBase):
+    pass
+
+
+# Properties stored in DB
+class TodoInDB(TodoInDBBase):
+    pass
