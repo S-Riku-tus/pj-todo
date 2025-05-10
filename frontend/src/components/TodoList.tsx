@@ -12,15 +12,25 @@ interface Todo {
 
 interface TodoListProps {
   token: string | null;
+  localTodos: Todo[];
+  onUpdateLocalTodo: (id: number, completed: boolean) => void;
+  onDeleteLocalTodo: (id: number) => void;
+  isLoggedIn: boolean;
 }
 
-export const TodoList = ({ token }: TodoListProps) => {
+export const TodoList = ({ 
+  token, 
+  localTodos, 
+  onUpdateLocalTodo, 
+  onDeleteLocalTodo,
+  isLoggedIn 
+}: TodoListProps) => {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTodos = async () => {
-    if (!token) return;
+    if (!isLoggedIn || !token) return;
 
     setIsLoading(true);
     setError(null);
@@ -47,11 +57,16 @@ export const TodoList = ({ token }: TodoListProps) => {
   };
 
   useEffect(() => {
-    fetchTodos();
-  }, [token]);
+    if (isLoggedIn) {
+      fetchTodos();
+    }
+  }, [token, isLoggedIn]);
 
   const handleToggleComplete = async (id: number, completed: boolean) => {
-    if (!token) return;
+    if (!isLoggedIn || !token) {
+      onUpdateLocalTodo(id, completed);
+      return;
+    }
 
     try {
       const response = await fetch(`http://localhost:8000/api/v1/todos/${id}`, {
@@ -76,7 +91,10 @@ export const TodoList = ({ token }: TodoListProps) => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!token) return;
+    if (!isLoggedIn || !token) {
+      onDeleteLocalTodo(id);
+      return;
+    }
 
     try {
       const response = await fetch(`http://localhost:8000/api/v1/todos/${id}`, {
@@ -97,17 +115,25 @@ export const TodoList = ({ token }: TodoListProps) => {
     }
   };
 
+  // 表示するTodoの配列を決定
+  const displayTodos = isLoggedIn ? todos : localTodos;
+
   if (isLoading) {
-    return <div className="text-center py-8">読み込み中...</div>;
+    return <div className="text-center py-8 bg-blue-900/30 rounded-lg shadow-md">
+      <div className="flex justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-300"></div>
+      </div>
+      <p className="mt-2 text-cyan-100">読み込み中...</p>
+    </div>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-500/20 border border-red-500 p-4 rounded-lg text-center">
-        <p>{error}</p>
+      <div className="bg-red-500/30 border border-red-500 p-6 rounded-lg text-center shadow-md">
+        <p className="text-red-100">{error}</p>
         <button 
           onClick={fetchTodos}
-          className="mt-2 bg-red-600 hover:bg-red-700 text-white py-1 px-4 rounded text-sm"
+          className="mt-4 bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-md text-sm shadow-md transition-colors"
         >
           再試行
         </button>
@@ -115,21 +141,21 @@ export const TodoList = ({ token }: TodoListProps) => {
     );
   }
 
-  if (todos.length === 0) {
+  if (displayTodos.length === 0) {
     return (
-      <div className="bg-gray-800 p-6 rounded-lg text-center">
-        <p className="text-gray-400">Todoがありません。新しいTodoを追加してください。</p>
+      <div className="bg-gradient-to-b from-blue-800/50 to-gray-800/50 p-8 rounded-lg text-center shadow-md">
+        <p className="text-cyan-100">Todoがありません。新しいTodoを追加してください。</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden">
-      <h2 className="text-xl font-semibold p-4 bg-gray-700 text-cyan-400">
+    <div className="bg-gradient-to-b from-blue-800 to-gray-800 rounded-lg overflow-hidden shadow-xl">
+      <h2 className="text-xl font-semibold p-4 bg-blue-900/70 text-cyan-300 border-b border-blue-700">
         Todoリスト
       </h2>
-      <ul className="divide-y divide-gray-700">
-        {todos.map((todo) => (
+      <ul className="divide-y divide-blue-900/30">
+        {displayTodos.map((todo) => (
           <TodoItem 
             key={todo.id}
             todo={todo}
